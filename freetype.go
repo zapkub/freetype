@@ -349,16 +349,18 @@ func NewContext() *Context {
 func (c *Context) fontIndex(prev, r rune) truetype.Index {
 	var idx = c.f.Index(rune(r))
 	var thprev, thcurr = thrune(prev), thrune(r)
+
+	// here is the combination has been adjusted
 	if thprev.isUpper() && thcurr.isTop() {
-		idx++
+		idx++ // should find a right glpyh which depend on thai map set
 	}
 
 	if thprev.isBaseAsc() && thcurr.isUpper() {
-		idx++
+		idx++ // should find a right glpyh which depend on thai map set
 	}
 
 	if thprev.isBaseDesc() && thcurr.isLower() {
-		idx++
+		idx++ // should find a right glpyh which depend on thai map set
 	}
 
 	return idx
