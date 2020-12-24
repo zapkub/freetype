@@ -57,3 +57,12 @@ func BenchmarkDrawString(b *testing.B) {
 	mallocs = ms.Mallocs - mallocs
 	b.Logf("%d iterations, %d mallocs per iteration\n", b.N, int(mallocs)/b.N)
 }
+
+func Test_thLigatureClass(t *testing.T) {
+	var input = "มั้ย"
+	var result = adjustThaiLigature(input)
+
+	if input == result {
+		t.Fatalf("should change %s, %s", input, result)
+	}
+}

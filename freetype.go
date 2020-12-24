@@ -6,7 +6,9 @@
 // The freetype package provides a convenient API to draw text onto an image.
 // Use the freetype/raster and freetype/truetype packages for lower level
 // control over rasterization and TrueType parsing.
-package freetype // import "github.com/golang/freetype"
+package freetype
+
+// import "github.com/golang/freetype"
 
 import (
 	"errors"
@@ -231,16 +233,19 @@ func (c *Context) DrawString(s string, p fixed.Point26_6) (fixed.Point26_6, erro
 	if c.f == nil {
 		return fixed.Point26_6{}, errors.New("freetype: DrawText called with a nil font")
 	}
+	var prevrune rune
 	prev, hasPrev := truetype.Index(0), false
 	for _, rune := range s {
-		index := c.f.Index(rune)
+		index := c.fontIndex(prevrune, rune)
 		if hasPrev {
 			kern := c.f.Kern(c.scale, prev, index)
 			if c.hinting != font.HintingNone {
 				kern = (kern + 32) &^ 63
 			}
 			p.X += kern
+
 		}
+
 		advanceWidth, mask, offset, err := c.glyph(index, p)
 		if err != nil {
 			return fixed.Point26_6{}, err
@@ -252,6 +257,7 @@ func (c *Context) DrawString(s string, p fixed.Point26_6) (fixed.Point26_6, erro
 			mp := image.Point{0, dr.Min.Y - glyphRect.Min.Y}
 			draw.DrawMask(c.dst, dr, c.src, image.ZP, mask, mp, draw.Over)
 		}
+		prevrune = rune
 		prev, hasPrev = index, true
 	}
 	return p, nil
@@ -338,4 +344,48 @@ func NewContext() *Context {
 		dpi:      72,
 		scale:    12 << 6,
 	}
+}
+
+func (c *Context) fontIndex(prev, r rune) truetype.Index {
+	var idx = c.f.Index(rune(r))
+	var thprev, thcurr = thrune(prev), thrune(r)
+	if thprev.isUpper() && thcurr.isTop() {
+		idx++
+	}
+
+	if thprev.isBaseAsc() && thcurr.isUpper() {
+		idx++
+	}
+
+	if thprev.isBaseDesc() && thcurr.isLower() {
+		idx++
+	}
+
+	return idx
+}
+
+type thrune rune
+
+func (l thrune) isBase() bool {
+	return l >= 'ก' && l <= 'ฯ' || l == 'ะ' || l == 'เ' || l == 'แ'
+}
+
+func (l thrune) isBaseDesc() bool {
+	return l == 'ฎ' || l == 'ฏ'
+}
+
+func (l thrune) isBaseAsc() bool {
+	return l == 'ป' || l == 'ฝ' || l == 'ฟ' || l == 'ฬ'
+}
+
+func (l thrune) isTop() bool {
+	return l >= '่' && l <= '์'
+}
+
+func (l thrune) isLower() bool {
+	return l >= 'ุ' && l <= 'ฺ'
+}
+
+func (l thrune) isUpper() bool {
+	return l == 'ั' || l == 'ี' || l == 'ึ' || l == 'ื' || l == '็' || l == 'ํ' || l == 'ิ'
 }
